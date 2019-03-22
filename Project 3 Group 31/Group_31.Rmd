@@ -1,0 +1,168 @@
+---
+title: "The City That Never Sleeps Sleeps on the Streets  "
+author: "Group 31: Vivienne Maxwell and Genel McLean"
+date: "November 30th, 2018"
+output:
+  html_document:
+    highlight: tango
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: false
+    df_print: kable
+
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Set R Markdown chunk defaults:
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE, 
+  fig.width = 16/2, fig.height = 9/2
+)
+```
+
+
+```{r, echo=FALSE}
+# Load all necessary packages here. It's a good idea to load all packages at 
+# the beginning of a Rmd file so that collaborators can see in one shot all
+# packages they'll need to ensure are installed beforehand:
+library(tidyverse)
+library(purrr)
+library(maps)
+library(USAboundaries)
+library(tigris)
+library(dplyr)
+library(leaflet)
+library(sp)
+library(maptools)
+library(sf)
+library(ggplot2)
+library(ggmap)
+library(tidycensus)
+library(devtools)
+library(maps)
+
+# Do your data loading and wrangling (if any) here:
+
+```
+
+
+# Introduction
+
+As two city kids growing up in New York, it is impossible to not be constantly aware of the homeless population. Just walking down the street, one can’t help but notice the amount of homeless New Yorkers living on the streets. The question that lingers in the back of our minds is why are they out on the streets? 
+
+
+# Background
+The current homeless population stands at 63,025 (1)  and that is just the individuals who have been documented. With the data gathered from NYC Open Data (2), we set out to map drop-in centers for homeless New Yorkers and programs for runaway and homeless youth among the five burrows and understand why so many homeless New Yorkers slept on the streets. NYC Open Data makes data collected by various New York agencies open to the public. The datasets we used were a directory of homeless drop-in centers among the five burrows and a directory of afterschool programs for runaway and homeless youth. As displayed in the map below, there are 11 programs for homeless youth sporadically spread among the five burrows. 
+
+```{r, echo=FALSE}
+#load data sets  
+library(readr)
+DYCD_after_school_programs_Runaway_And_Homeless_Youth <- read_csv("~/MP3/DYCD_after-school_programs__Runaway_And_Homeless_Youth.csv")
+
+library(readr)
+Directory_Of_Homeless_Drop_In_Centers_1_ <- 
+read_csv("~/MP3/Directory_Of_Homeless_Drop-_In_Centers (1).csv")
+
+#rename data 
+afterschool <- DYCD_after_school_programs_Runaway_And_Homeless_Youth
+
+dropin_center <- Directory_Of_Homeless_Drop_In_Centers_1_
+
+#delete grade level column with all NA variables
+a <- afterschool %>%
+select(-'Grade Level / Age Group')
+
+#remove NA values in latitude and longitude
+as <- na.omit(a)
+```
+
+```{r}
+
+#static map code
+
+#margins of NYC and chosing type of base map
+library("ggmap")
+us <- c(left = -74.25909, bottom = 40.47740, right = -73.70001, top = 40.91758)
+map <- get_stamenmap(us, zoom = 14, maptype = "toner-lite")
+
+
+#load packages
+library("dplyr")
+library("forcats")
+
+# define helper
+`%notin%` <- function(lhs, rhs) !(lhs %in% rhs)
+
+# mapping data set to static map
+#afs <- as
+
+afs <- as  %>%
+  dplyr::filter(
+    PROGRAM %notin% c("Crisis Shelter", "Drop-In Shelter", "Street Outreach", "Transportation"),
+    -75 <= Longitude & Longitude <= -70,
+    38 <= Latitude & Latitude <=  42)  %>%
+  mutate(
+    PROGRAM = fct_drop(PROGRAM),
+    PROGRAM = fct_relevel(PROGRAM, c("Crisis Shelter", "Drop-In Shelter", "Street Outreach","Transportation"))
+  )
+
+
+# use qmplot to make a scatterplot on a map
+qmplot(Longitude, Latitude, data = afs, maptype = "toner-lite", color = I("red"), zoom = 12)
+
+```
+
+```{r}
+#interactive map for afterschool programs using as data (afterschool) change
+colnames(as)[colnames(as)== "Number and Street Address"]<-"Address"
+colnames(as)[colnames(as)== "SITE NAME"]<-"Site_name"
+leaflet(data = as) %>%
+ addTiles() %>%
+ addCircleMarkers(~Longitude, ~Latitude,
+                  popup = ~Site_name, label = ~Site_name)
+```
+
+## Why Homeless New Yorkers Sleep on the Streets 
+We also looked at drop-in centers for homeless New Yorkers and what we found was disappointing. The centers located in each burrow are very low, ranging from zero in Queens to six in Manhattan. The data featured in the maps is by no means a complete list of all the homeless shelters. As of 2017, there is an estimated 290 shelters across all five burrows which serve a homeless population of around 63,000 (3). That’s approximately 220 homeless individuals per shelter. Numbers don’t lie. It is clear these shelters are simply swamped with demand. Furthermore, in a 2015 report crafted by the New York City Department of Investigation (DOI) on shelters for families with children, the DOI "found that the family shelters it inspected and reviewed are too often unsafe and unhealthy for children and families" (4,5).  Many homeless individuals reported feeling unsafe in shelters due to violence, theft and poor conditions, leaving them with their only other option: the streets (6). 
+```{r, echo=FALSE}
+#renaming and creation of interactive map for dropin in data
+dropin_center <- Directory_Of_Homeless_Drop_In_Centers_1_
+
+colnames(dropin_center)[colnames(dropin_center)== "Center Name"]<-"Center_name"
+
+leaflet(data = dropin_center) %>%
+ addTiles() %>%
+ addCircleMarkers(~Longitude, ~Latitude,
+                 popup = ~Center_name, label = ~Center_name)
+```
+
+## Possible Solutions
+There are a few ways to decrease the homeless population on the streets (7): an increase of homeless shelters in each burrow and improved living conditions, or the shift from short-term shelters to long-term housing. Both methods could help to get homeless New Yorkers off the streets and into more stable living conditions. In addition, the establishment of a career training program would allow for homeless individuals to receive a source of income. This would further prevent individuals from sliding back into homelessness. 
+
+# Plan for Establishing Policy 
+There is obviously a problem with the way NYC is handling the homelessness issue. We therefore propose a “One in Three” plan, similar to that proposed by the Coalition for the Homeless (8). 
+
+## Step 1: Immediate Shift from Short-term Shelters to Long-term Housing
+Rather than treating the problem of homelessness with the opening of more shelters, we propose focusing on the cause of homelessness: the lack of a home. The most cost-effective way to help homeless children and families is to move them into long-term federal housing programs rather than short-term shelters. This can be done by using the already in place priority system for public housing, which means those who are homeless take priority over others when in comes to receiving placement into federal housing. 
+
+## Step 2: In Coming Years Save Housing for the Homeless
+This step would require 10 percent of all newly built housing units to be set aside for the homeless. According to the 2018 Housing Supply Report conducted by the New York City Rent Guidelines Board, the number of new housing units completed in 2017 increased 11.1% over the prior year, to 25,839. If 10 percent of those housing units are set aside, that leaves 2583 housing units open to house homeless New Yorkers. 
+
+Both steps should work towards moving the homeless population out of short-term shelters and transitioning them into more stable, safe and comfortable living conditions. 
+
+# Taking Action
+Feeling like you want to take action? You should! Email volunteer@cfthomeless.org to volunteer for the Coalition for the Homeless in NYC. 
+
+
+# References and Citations
+1. [Basic Facts About Homelessness: New York City.](www.coalitionforthehomeless.org/basic-facts-about-homelessness-new-york-city/){target="_blank"}, Coalition For The Homeless
+2. [Categories](data.cityofnewyork.us/browse?q=homeless){target="_blank"}, NYC Open Data
+3. [City Data Reveal Where All NYC Homeless Shelters Are Located](http://www.ny1.com/nyc/all-boroughs/politics/2017/02/27/city-data-reveals-where-all-nyc-homeless-shelters-are-located){target="_blank"}, Spectrum News NY 1, February 28, 2017
+4. [DOI Investigation of 25 City-Run Homeless Shelters for Families Finds Serious Deficiencies](http://www.nyc.gov/html/doi/downloads/pdf/2015/mar15/pr08dhs_31215.pdf){target="_blank"}, New York City Department of Investigation, 12 March 2015
+5. ["Review of New York Shelter System Finds Hundreds of Violations"](https://www.nytimes.com/2015/03/13/nyregion/new-york-homeless-shelter-system-violations-report.html){target="_blank"}, The New York Times
+6. ["Homeless men share why they prefer the streets over New York City shelters — even when cold weather hits"](https://www.nydailynews.com/new-york/homeless-men-share-prefer-streets-nyc-shelters-article-1.2117853){target="_blank"}, New York Daily News
+7. [“State of the Homeless 2018.”](www.coalitionforthehomeless.org/state-of-the-homeless-2018/){target="_blank"},Coalition For The Homeless
+8. [“State of the Homeless in New York City.”](www.coalitionforthehomeless.org/state-of-the-homeless-in-new-york-city/){target="_blank"}, Coalition For The Homeless
+9. [“Homelessness & Poverty in New York City.”](www.bowery.org/homelessness/){target="_blank"}, The Bowery Mission. Rebuilding Lives Since 1879
